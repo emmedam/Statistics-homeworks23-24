@@ -10,13 +10,13 @@ let list = [];
             document.getElementById('resultList').innerHTML = `List: [${list.join(', ')}]`;
         }
 
-        function addElement() {
+        function addElementList() {
             const element = document.getElementById('addElement').value;
             list.push(element);
             displayList();
         }
 
-        function deleteElement() {
+        function deleteElementList() {
             const element = document.getElementById('deleteElement').value;
             const index = list.indexOf(element);
             if (index !== -1) {
@@ -27,7 +27,7 @@ let list = [];
             }
         }
 
-        function searchElement() {
+        function searchElementList() {
             const element = document.getElementById('searchElement').value;
             const index = list.indexOf(element);
             if (index !== -1) {
