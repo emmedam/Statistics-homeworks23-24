@@ -32,7 +32,7 @@ namespace frequencyProj
             textBox1.Height = 600;
             textBox1.Multiline = true;
 
-            StreamReader reader = new StreamReader("C:/Users/miche/source/repos/hw2/frequencyProjCsharp/frequencyProj/languageFile");
+            StreamReader reader = new StreamReader("C:languageFile");
             List<string> lines = new List<string>();
             using (reader)
             {
@@ -95,7 +95,7 @@ namespace frequencyProj
             textBox2.Width = 600;
             textBox2.Height = 600;
             textBox2.Multiline = true;
-            StreamReader reader = new StreamReader("C:/Users/miche/source/repos/hw2/frequencyProjCsharp/frequencyProj/ageFile.txt");
+            StreamReader reader = new StreamReader("C:ageFile.txt");
             List<string> lines = new List<string>();
             using (reader)
             {
@@ -160,7 +160,7 @@ namespace frequencyProj
             textBox3.Width = 600;
             textBox3.Height = 600;
             textBox3.Multiline = true;
-            StreamReader reader = new StreamReader("C:/Users/miche/source/repos/hw2/frequencyProjCsharp/frequencyProj/weight.txt");
+            StreamReader reader = new StreamReader("C:weight.txt");
             List<string> lines = new List<string>();
             using (reader)
             {
@@ -320,7 +320,7 @@ namespace frequencyProj
             textBox4.Multiline = true;
             textBox4.ScrollBars = ScrollBars.Both;
 
-            string[] lines = File.ReadAllLines("C:/Users/miche/source/repos/hw2/frequencyProjCsharp/frequencyProj/bivariate.txt");
+            string[] lines = File.ReadAllLines("C:bivariate.txt");
             List<Tuple<string, string>> dataPairs = new List<Tuple<string, string>>();
 
             foreach (string line in lines)
