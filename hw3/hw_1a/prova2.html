@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulazione Sicurezza</title>
+    <style>
+       
+        #canvasContainer {
+            border: 1px solid #000;
+            position: relative;
+        }
+
+        canvas {
+            position: absolute;
+           
+        }
+    </style>
+</head>
+
+<body>
+    <label for="N">Numero di attacchi:</label>
+    <input type="number" id="N" value="10"><br>
+    <label for="p">Probabilità di penetrazione (0-1):</label>
+    <input type="number" id="p" step="0.01" min="0" max="1" value="0.5"><br>
+    <label for="M">Numero di sistemi:</label>
+    <input type="number" id="M" value="3"><br>
+    <button onclick="startSimulation()">Avvia Simulazione</button><br>
+ 
+    <div id="canvasContainer" width= "800" height="400">
+        <canvas id="myCanvas" width="800" height="400" ></canvas>
+    </div>
+
+    <script>
+        function startSimulation() {
+            const N = parseInt(document.getElementById('N').value);
+            const p = parseFloat(document.getElementById('p').value);
+            const M = parseInt(document.getElementById('M').value);
+            const trajectories = simulateSecurityScores(N, p, M);
+
+            const canvasContainer = document.getElementById('canvasContainer');
+            const canvas = document.getElementById('myCanvas');
+            const ctx = canvas.getContext('2d');
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+
+
+            const xOffset = 0; // Spazio a sinistra del canvas
+            const yOffset = canvasHeight/2; // Spazio sopra il canvas
+            const yScale = 50; // Fattore di scala per i punteggi
+            const interval = 100; // Intervallo tra ogni iterazione del timer (in millisecondi)
+
+            let currentStep = 0; // Passo attuale della simulazione
+
+            function drawChart() {
+                const canvasContainer = document.getElementById('canvasContainer');
+                const canvas = document.getElementById('myCanvas');
+                const ctx = canvas.getContext('2d');
+                const containerWidth = canvasContainer.clientWidth;
+                const containerHeight = canvasContainer.clientHeight;
+                canvas.width = containerWidth;
+                canvas.height = containerHeight;
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight); // Cancella il canvas prima di disegnare nuovi dati
+                // Disegna gli assi del grafico
+                drawAxes();
+                // Disegna i grafici per M sistemi
+                for (let i = 0; i < M; i++) {
+                    ctx.strokeStyle = getRandomColor();
+                    drawSystemTrajectory(trajectories[i], ctx, xOffset, yOffset, yScale, interval, currentStep);
+                }
+                currentStep++;
+            }
+
+            // Funzione per disegnare gli assi del grafico
+            function drawAxes() {
+                ctx.beginPath();
+                ctx.moveTo(0, canvasHeight / 2);
+                ctx.lineTo(canvasWidth, canvasHeight / 2);
+                ctx.moveTo(0, 0);
+                ctx.lineTo(0, canvasHeight);
+               
+                ctx.strokeStyle = 'black';
+                ctx.stroke();
+            }
+
+            // Funzione per disegnare la traiettoria di un sistema specifico
+            function drawSystemTrajectory(trajectory, context, xOff, yOff, ySc, interval, step) {
+                context.beginPath();
+                context.moveTo(xOff, yOff - trajectory[0] * ySc);
+                for (let i = 1; i <= step; i++) {
+                    context.lineTo(xOff + i * interval, yOff - trajectory[i] * ySc);
+                }
+                context.stroke();
+            }
+
+
+
+            // Avvia il timer per la simulazione
+            const simulationTimer = setInterval(() => {
+                if (currentStep < N) {
+                    drawChart();
+                } else {
+                    clearInterval(simulationTimer); // Fermare il timer quando la simulazione è completa
+                }
+            }, interval);
+        }
+
+        function simulateSecurityScores(N, p, M) {
+            const scores = [];
+            for (let i = 0; i < M; i++) {
+                const systemScores = [];
+                for (let j = 0; j < N; j++) {
+                    // Simula il punteggio di sicurezza per ogni attacco
+                    const score = Math.random() < p ? 1 : -1;
+                    systemScores.push(score);
+                }
+                scores.push(systemScores);
+            }
+            return scores;
+        }
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let k = 0; k < 6; k++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        const canvasContainer = document.getElementById('canvasContainer');
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let isResizing = false;
+
+        let startX, startY, containerWidth, containerHeight;
+
+        let resizeOffsetX, resizeOffsetY;
+        canvasContainer.addEventListener('mousedown', (event) => {
+            const rect = canvasContainer.getBoundingClientRect();
+            startX = event.clientX - rect.left;
+            startY = event.clientY - rect.top;
+            containerWidth = canvasContainer.clientWidth;
+            containerHeight = canvasContainer.clientHeight;
+            isResizing = true;
+        });
+
+        window.addEventListener('mousemove', (event) => {
+            if (isResizing) {
+                const newWidth = event.clientX - startX + containerWidth;
+                const newHeight = event.clientY - startY + containerHeight;
+                canvasContainer.style.width = newWidth + 'px';
+                canvasContainer.style.height = newHeight + 'px';
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                drawChart(); // Ridisegna il grafico quando il canvas viene ridimensionato
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isResizing = false;
+        });
+     
+        window.addEventListener("resize", () => {
+            // Aggiorna le dimensioni del canvas
+            canvas.width = canvasContainer.clientWidth;
+            canvas.height = canvasContainer.clientHeight;
+
+            // Ridisegna il grafico con le nuove dimensioni
+            drawChart();
+        });
+
+
+    </script>
+</body>
+
+</html>
