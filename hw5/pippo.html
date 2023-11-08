@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+    <head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Score Animation</title>
+
+    </head>
+
+    <body>
+        <!-- <form id="Form">
+            <label>Number of attacks</label>
+            <input type="number" id="N" value="100" min="0" />
+            <br /> <br />
+            <label>Number of systems</label>
+            <input type="number" id="M" value="50" min="0" />
+            <br /> <br />
+            <label>Attacks rate</label>
+            <input type="number" id="rate" value="0.5" step="0.01" min="0" max="1" />
+            <br /> <br />
+            <label>Intervals</label>
+            <input type="number" id="intervals" value="10" step="0.01" min="0" max="100" />
+            <br /> <br />
+            <input type="button" id="start" value="Start attack!" onclick="checkForm()" />
+        </form> -->
+    <canvas id="scoreCanvas" width="1920" height="1080" style="border: 2px solid black;"></canvas>
+    <script>
+        const canvas = document.getElementById("scoreCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const numSystems = 400;
+        const numAttacks = 200;
+        const penetrationProbability = 0.5;
+
+        // let N = parseInt(document.getElementById('N').value);
+        // let M = parseInt(document.getElementById('M').value);
+        // let T = 1;
+        // let rate = (document.getElementById('rate').value);
+        // let intervals = (document.getElementById('intervals').value);
+        // let P = rate * (T / intervals);
+
+        // if (isNaN(N) | N < 1) {
+        //     alert("INVALID VALUE FOR NUMBER OF ATTACKS");
+        //     return false;
+        // }
+
+        // if (isNaN(M) | M < 1) {
+        //     alert("INVALID VALUE FOR NUMBER OF SERVERS");
+        //     return false;
+        // }
+
+        // if (isNaN(rate) | rate < 0 | rate > 1) {
+        //     alert("INVALID VALUE FOR ATTACKS RATE");
+        //     return false;
+        // }
+
+
+        class Interval {
+
+            constructor(upper, lower, count) {
+                this.upper = upper;
+                this.lower = lower;
+                this.count = count;
+
+            }
+
+        }
+
+
+        class Rectangle {
+            constructor(x, y, width, height) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+
+            }
+
+
+            left() {
+                return this.x
+            }
+
+
+            top() {
+                return this.y
+            }
+
+
+            right() {
+                return this.x + this.width
+            }
+
+
+            bottom() {
+                return this.y + this.height
+            }
+
+
+            aspectRatio() {
+                return this.width / this.height || 1
+            }
+
+            drawRectangle(ctx, lineColor, lineWidth, lineDash) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(this.x, this.y, this.width, this.height);
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = lineWidth;
+                ctx.setLineDash(lineDash);
+                ctx.stroke();
+                ctx.restore()
+            }
+
+        }
+
+
+        const viewRect = new Rectangle(10, 10, 1000, 300);
+        // const absoluteRect = new Rectangle(viewRect.x, viewRect.bottom() + 20, viewRect.width, 200);
+        // const relativeRect = new Rectangle(viewRect.x, absoluteRect.bottom() + 20, viewRect.width, 200);
+        // const normalizedRect = new Rectangle(viewRect.x, relativeRect.bottom() + 20, viewRect.width, 200);
+        //const rects = [viewRect, absoluteRect, relativeRect, normalizedRect];
+        class Prof2dUtilities {
+            static transformX(x, min_x, rangeL_x, left, width) {
+                return left + width * (x - min_x) / rangeL_x;
+            }
+            static transformY(y, min_y, rangeL_y, top, height) {
+                return top + height - (height * (y - min_y) / rangeL_y);
+
+            }
+
+        }
+
+
+        class Histogram {
+            static verticalHistoFromIntervals(ctx, intervals, y_min, y_range, viewRect, strokeStyle, lineWidth, fillStyle) {
+                let maxcount = 0;
+
+                for (const interval of intervals) {
+                    maxcount = Math.max(maxcount, interval.count);
+                }
+
+                for (const interval of intervals) {
+                    let x_rect = viewRect.x;
+                    let width_rect = viewRect.width * interval.count / maxcount;
+                    let y_rect_top = Prof2dUtilities.transformY(interval.upper, y_min, y_range, viewRect.y, viewRect.height);
+                    let y_rect_bottom = Prof2dUtilities.transformY(interval.lower, y_min, y_range, viewRect.y, viewRect.height);
+                    let height_rect = y_rect_bottom - y_rect_top;
+                    let rectInterval = new Rectangle(x_rect, y_rect_top, width_rect, height_rect);
+
+                    ctx.rect(rectInterval.x, rectInterval.y, rectInterval.width, rectInterval.height);
+                    
+                    const gradient = ctx.createLinearGradient(rectInterval.x, rectInterval.y, rectInterval.x, rectInterval.y + rectInterval.height);
+                    gradient.addColorStop(0, 'black');
+                    gradient.addColorStop(0.25, fillStyle);
+                    gradient.addColorStop(0.5, 'white');
+                    gradient.addColorStop(0.75, fillStyle);
+                    gradient.addColorStop(1, 'black');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(rectInterval.x, rectInterval.y, rectInterval.width, rectInterval.height);
+
+                }
+
+            }
+
+        }
+
+
+        // function createMouse(element) {
+        //     var mouse = {
+        //         x: 0,
+        //         y: 0,
+        //         button1: false,
+        //         button2: false,
+        //         button3: false,
+        //         over: false,
+        //     };
+        //     function mouseEvent(event) {
+        //         var bounds = element.getBoundingClientRect();
+        //         mouse.x = event.clientX - bounds.left;
+        //         mouse.y = event.clientY - bounds.top;
+        //         if (event.type === "mousedown") {
+        //             mouse["button" + event.which] = true;
+        //         } else if (event.type === "mouseup") {
+        //             mouse["button" + event.which] = false;
+        //         } else if (event.type === "mouseover") {
+        //             mouse.over = true;
+        //         } else if (event.type === "mouseout") {
+        //             mouse.over = false;
+        //             mouse.button1 = false;
+        //             mouse.button2 = false;
+        //             mouse.button3 = false;
+        //         }
+
+        //         event.preventDefault();
+
+        //     }
+
+        //     var events = "mousemove,mousedown,mouseup,mouseout,mouseover".split(',');
+        //     events.forEach(eventType => element.addEventListener(eventType, mouseEvent));
+        //     mouse.remove = function () {
+        //         events.forEach(eventType => element.removeEventListener(eventType, mouseEvent));
+        //     }
+        //     return mouse;
+
+        // }
+
+        // const mouse = createMouse(canvas);
+        // let isResizing = false;
+        // let resizeHandle = null;
+        // let isDragging = false;
+
+        // function update() {
+        //     if (mouse.button1) {
+        //         if (!isResizing) {
+        //             isResizing = true;
+        //             for (let i = 0; i < rects.length; i++) {
+        //                 if (
+        //                     mouse.x >= rects[i].x &&
+        //                     mouse.x <= rects[i].x + rects[i].width &&
+        //                     mouse.y >= rects[i].y &&
+        //                     mouse.y <= rects[i].y + rects[i].height) {
+        //                     resizeHandle = {
+        //                         startX: mouse.x,
+        //                         startY: mouse.y,
+        //                         initialWidth: rects[i].width,
+        //                         initialHeight: rects[i].height,
+        //                         rectIndex: i,
+        //                     };
+        //                     break;
+        //                 }
+        //             }
+        //         }
+        //     } else {
+        //         isResizing = false;
+        //         resizeHandle = null;
+        //     }
+
+
+
+        //     if (isResizing) {
+        //         const rectIndex = resizeHandle.rectIndex;
+        //         const rect = rects[rectIndex];
+        //         const width = resizeHandle.initialWidth + (mouse.x - resizeHandle.startX);
+        //         const height = resizeHandle.initialHeight + (mouse.y - resizeHandle.startY);
+        //         rect.width = width
+        //         rect.height = height;
+
+        //         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        //         viewRect.drawRectangle(ctx, "black", 2, [1, 1]);
+        //         absoluteRect.drawRectangle(ctx, "black", 2, [1, 1]);
+        //         relativeRect.drawRectangle(ctx, "black", 2, [1, 1]);
+        //         normalizedRect.drawRectangle(ctx, "black", 2, [1, 1]);
+        //         drawLabels(viewRect, y_range);
+        //         drawScores(securityTrajectories, currentAttack, Math.abs(y_min), y_range, viewRect);
+        //         drawLabelsO(absoluteRect, crange);
+        //         drawCumulativeFrequencyGraph(ctx, cumulatedF, absoluteRect, currentAttack, cmin, cmax);
+        //         drawLabelsO(relativeRect, 100);
+        //         drawCumulativeFrequencyGraph(ctx, cumulatedFR, relativeRect, currentAttack, crmin, 100);
+        //         drawLabelsO(normalizedRect, cnrange);
+        //         drawCumulativeFrequencyGraph(ctx, cumulatedFN, normalizedRect, currentAttack, cnmin, cnmax);
+
+        //         if (currentAttack >= Math.floor(numAttacks / 2)) {
+        //             printHistogram(Math.floor(numAttacks / 2));
+
+        //         }
+        //         if (currentAttack >= numAttacks) {
+        //             printHistogram(numAttacks);
+        //         }
+
+        //     }
+
+        // }
+
+        //setInterval(update, 1000 / 60);
+        const securityTrajectories = [];
+
+        for (let system = 0; system < numSystems; system++) {
+            const scores = [];
+            let score = 0;
+
+            for (let attack = 0; attack < numAttacks; attack++) {
+                const outcome = Math.random() <= penetrationProbability ? -1 : 1;
+                score += outcome;
+                scores.push(score);
+            }
+            securityTrajectories.push(scores);
+
+        }
+        function drawScores(data, frame, y_min, y_range, viewRect) {
+            for (let system = 0; system < numSystems; system++) {
+                const currentTrajectory = data[system];
+                const x_start = viewRect.left();
+                const x_step = viewRect.width / numAttacks;
+                const y_start = viewRect.top() - viewRect.height;
+                let x = x_start;
+                let y = Prof2dUtilities.transformY(currentTrajectory[0], y_min, y_range, y_start, viewRect.height);
+                for (let i = 0; i <= frame; i++) {
+                    const outcome = currentTrajectory[i];
+                    ctx.strokeStyle = "black";
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    x += x_step;
+                    y = Prof2dUtilities.transformY(outcome, y_min, y_range, y_start, viewRect.height);
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                }
+
+            }
+
+        }
+
+
+        function drawLabels(rect, yrange) {
+
+            const ctx = canvas.getContext("2d");
+            const xAxisLabelY = rect.bottom() + 10;
+            const yAxisLabelX = rect.left() - 10;
+            const labelPadding = 10;
+            const yrangeHalf = yrange / 2;
+            const yStep = Math.floor(yrange / 4);
+            const xStep = Math.floor(numAttacks / 5);
+
+            for (let i = 0; i <= numAttacks; i += xStep) {
+                const x = rect.left() + i * (rect.width / numAttacks);
+                const label = i.toString();
+                ctx.fillStyle = "black";
+                ctx.fillText(label, x - labelPadding, xAxisLabelY);
+
+            }
+
+
+            for (let i = -yrangeHalf; i <= yrangeHalf; i += yStep) {
+                const y = rect.top() + (i + yrangeHalf) * (rect.height / yrange);
+                const label = -i.toString();
+                ctx.fillStyle = "black";
+                ctx.fillText(label, yAxisLabelX, y);
+
+            }
+
+
+            ctx.stroke();
+
+        }
+
+
+        // function drawLabelsO(rect, yrange) {
+        //     const ctx = canvas.getContext("2d");
+        //     const xAxisLabelY = rect.bottom() + 10;
+        //     const yAxisLabelX = rect.left() - 10;
+        //     const labelPadding = 10;
+        //     const yStep = Math.floor(yrange / 4);
+        //     const xStep = Math.floor(numAttacks / 5);
+
+        //     for (let i = 0; i <= numAttacks; i += xStep) {
+        //         const x = rect.left() + i * (rect.width / numAttacks);
+        //         const label = i.toString();
+
+        //         ctx.fillStyle = "black";
+        //         ctx.fillText(label, x - labelPadding, xAxisLabelY);
+
+        //     }
+
+
+        //     for (let i = 0; i <= yrange; i += yStep) {
+        //         const y = rect.top() + i * (rect.height / yrange);
+        //         const label = Math.floor(yrange - i).toString();
+        //         ctx.fillStyle = "black";
+        //         ctx.fillText(label, yAxisLabelX, y);
+
+        //     }
+
+
+        //     ctx.stroke();
+
+        // }
+
+
+
+        function calculateIntervals(data, systemIndex, numIntervals) {
+            const systemData = data.map(subArray => subArray[systemIndex - 1]);
+            const minValue = Math.min(...systemData);
+            const maxValue = Math.max(...systemData);
+            const intervalSize = 1;
+
+            const intervals = [];
+
+            for (let i = 0; i < numIntervals; i++) {
+                const lower = minValue + i * intervalSize;
+                const upper = lower + intervalSize;
+                const count = systemData.filter((value) => value >= lower && value < upper).length;
+
+                const interval = new Interval(upper, lower, count);
+                intervals.push(interval);
+
+            }
+
+
+            intervals.sort((a, b) => a.upper - b.upper);
+            return intervals;
+
+        }
+
+
+        function printHistogram(numAttack) {
+            const intervals = calculateIntervals(securityTrajectories, numAttack, numSystems + 2);
+            let histoHeight = viewRect.height;
+            let y_offset = (viewRect.height - histoHeight) * 0.5;
+            const histoRect1 = new Rectangle(Prof2dUtilities.transformX(numAttack, 0, numAttacks, viewRect.x, viewRect.width), viewRect.y + y_offset, 150, histoHeight);
+            Histogram.verticalHistoFromIntervals(ctx, intervals, y_min, y_range, histoRect1, "yellow", 3, "yellow");
+
+        }
+
+
+        // function calculateCumulatedFrequency(data) {
+        //     const cumulativeSuccessSum = Array(numAttacks).fill(0);
+
+        //     for (let attack = 0; attack < numAttacks; attack++) {
+        //         for (let system = 0; system < numSystems; system++) {
+        //             if (attack > 0 && securityTrajectories[system][attack] < securityTrajectories[system][attack - 1]) {
+        //                 cumulativeSuccessSum[attack]++;
+        //             }
+
+        //         }
+
+        //         if (attack != 0) { cumulativeSuccessSum[attack] += cumulativeSuccessSum[attack - 1]; }
+
+        //     }
+        //     return cumulativeSuccessSum;
+
+        // }
+
+
+        // function calculateRelativeCumulatedFrequency(cumulativeData) {
+        //     const relativeCumulatedFrequency = cumulativeData.map((cumulativeValue, index) => (cumulativeData[index]) / ((index + 1) * numSystems) * 100);
+        //     return relativeCumulatedFrequency;
+
+        // }
+
+
+
+        // function calculateNormalizedFrequency(cumulativeData) {
+        //     const normalizedFrequency = cumulativeData.map((cumulativeValue, index) => cumulativeValue / (Math.sqrt(((index + 1) * numSystems))));
+        //     return normalizedFrequency;
+
+        // }
+
+        // function drawCumulativeFrequencyGraph(ctx, data, rect, frame, y_min, scoreRange) {
+        //     const x_start = rect.left();
+        //     const x_step = rect.width / numAttacks;
+        //     const y_start = rect.top() + rect.height;
+        //     const scale = rect.height / scoreRange;
+
+        //     let x = x_start;
+        //     let y = y_start;
+
+        //     for (let i = 0; i <= frame; i++) {
+        //         ctx.strokeStyle = "black";
+        //         ctx.beginPath();
+        //         ctx.moveTo(x, y);
+        //         x += x_step;
+        //         const scaledScore = (data[i]) * scale;
+        //         y = y_start - scaledScore;
+        //         ctx.lineTo(x, y);
+        //         ctx.stroke();
+
+        //     }
+
+        // }
+
+        let currentAttack = 1;
+        // let cumulatedF = calculateCumulatedFrequency(securityTrajectories);
+        // let cumulatedFR = calculateRelativeCumulatedFrequency(cumulatedF);
+        // let cumulatedFN = calculateNormalizedFrequency(cumulatedF);
+
+        let allTrajectories = securityTrajectories.flat();
+        let y_max = Math.max(...allTrajectories);
+        let y_min = Math.min(...allTrajectories);
+        let y_range = Math.max(Math.abs(y_max), Math.abs(y_min)) * 2;
+        y_min = Math.abs(y_max) > Math.abs(y_min) ? -y_max : y_min;
+
+        // let cmax = Math.max(...cumulatedF);
+        // let cmin = Math.min(...cumulatedF);
+        // let crange = Math.max(Math.abs(cmax), Math.abs(cmin));
+        // cmin = Math.abs(cmax) > Math.abs(cmin) ? -cmax : cmin;
+
+        // let crmax = Math.max(...cumulatedFR);
+        // let crmin = Math.min(...cumulatedFR);
+        // let crrange = Math.max(Math.abs(crmax), Math.abs(crmin));
+        // crmin = Math.abs(crmax) > Math.abs(crmin) ? -crmax : crmin;
+
+        // let cnmax = Math.max(...cumulatedFN);
+        // let cnmin = Math.min(...cumulatedFN);
+        // let cnrange = Math.max(Math.abs(cnmax), Math.abs(cnmin));
+        // cnmin = Math.abs(cnmax) > Math.abs(cnmin) ? -cnmax : cnmin;
+
+        function animate() {
+
+            if (currentAttack <= numAttacks) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                viewRect.drawRectangle(ctx, "black", 2, [1, 1]);
+                //absoluteRect.drawRectangle(ctx, "black", 2, [1, 1]);
+                //relativeRect.drawRectangle(ctx, "black", 2, [1, 1]);
+                //normalizedRect.drawRectangle(ctx, "black", 2, [1, 1]);
+
+                drawLabels(viewRect, y_range);
+                drawScores(securityTrajectories, currentAttack, Math.abs(y_min), y_range, viewRect);
+                //drawLabelsO(absoluteRect, crange);
+                //drawCumulativeFrequencyGraph(ctx, cumulatedF, absoluteRect, currentAttack, cmin, cmax);
+                //drawLabelsO(relativeRect, 100);
+                //drawCumulativeFrequencyGraph(ctx, cumulatedFR, relativeRect, currentAttack, crmin, 100);
+                //drawLabelsO(normalizedRect, cnmax);
+                //drawCumulativeFrequencyGraph(ctx, cumulatedFN, normalizedRect, currentAttack, cnmin, cnmax);
+            
+
+                if (currentAttack >= Math.floor(numAttacks / 2)) {
+                    printHistogram(Math.floor(numAttacks / 2));
+
+                }
+
+
+                if (currentAttack >= numAttacks) {
+                    printHistogram(numAttacks);
+                }
+
+                currentAttack++;
+
+                if (currentAttack <= numAttacks) {
+                    setTimeout(animate, frameDuration);
+                }
+
+            } else {
+                currentAttack = 1;
+                animate();
+
+            }
+
+        }
+        const frameDuration = 0;
+        animate();
+
+    </script>
+
+    </body>
+
+</html>

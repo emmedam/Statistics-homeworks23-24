@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <title>HW3 - PENETRATION SIMULATION</title>
+
+    <style>
+        .div_container {
+            display: inline-block;
+            height: 400px;
+            margin-right: 50px;
+            margin-left: 80px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+
+
+<body>
+
+    <form id="Form">
+        <label>Number of attacks</label>
+        <input type="number" id="N" value="100" min="0" />
+        <br /> <br />
+        <label>Number of systems</label>
+        <input type="number" id="M" value="50" min="0" />
+        <br /> <br />
+        <label>Attacks rate</label>
+        <input type="number" id="rate" value="0.5" step="0.01" min="0" max="1" />
+        <br /> <br />
+        <label>Intervals</label>
+        <input type="number" id="intervals" value="10" step="0.01" min="0" max="100" />
+        <br /> <br />
+        <input type="button" id="start" value="Start attack!" onclick="checkForm()" />
+    </form>
+   
+    <br /> <br />
+
+    <h2>Attack graphs</h2>
+   
+        <div id="attack_graph_container" class="div_container draggable" >
+            <canvas id="attack_graph" ></canvas>
+        </div>
+        
+        <br>
+       <div id="attack_histogram_container_middle" class="div_container draggable" width="600" height="400">
+            <canvas id="attack_histogram_middle" width="400" height="200"></canvas>
+        </div>
+
+        <div id="attack_histogram_container" class="div_container draggable" width="600" height="400">
+            <canvas id="attack_histogram" width="400" height="200"></canvas>
+        </div>
+        <br /> <br />
+
+
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+        <script>
+
+            function checkForm() {
+
+                "use strict"
+
+                let N = parseInt(document.getElementById('N').value);
+                let M = parseInt(document.getElementById('M').value);
+                let T = 1;
+                let rate = (document.getElementById('rate').value);
+                let intervals = (document.getElementById('intervals').value);
+                let P = rate * (T / intervals);
+
+
+                if (isNaN(N) | N < 1) {
+                    alert("INVALID VALUE FOR NUMBER OF ATTACKS");
+                    return false;
+                }
+
+                if (isNaN(M) | M < 1) {
+                    alert("INVALID VALUE FOR NUMBER OF SERVERS");
+                    return false;
+                }
+
+                if (isNaN(rate) | rate < 0 | rate > 1) {
+                    alert("INVALID VALUE FOR ATTACKS RATE");
+                    return false;
+                }
+
+                $(document).ready(function () {
+                    $(".draggable").draggable();
+                });
+
+
+                let security_scores_graph_canvas = document.getElementById('attack_graph');
+                let security_scores_graph_container = document.getElementById('attack_graph_container');
+                addHandlersForResize(security_scores_graph_canvas, security_scores_graph_container);
+
+                let security_scores_histogram_canvas = document.getElementById('attack_histogram');
+                let security_scores_histogram_container = document.getElementById('attack_histogram_container');
+                addHandlersForResize(security_scores_histogram_canvas, security_scores_histogram_container);
+
+                let security_scores_histogram_middle_canvas = document.getElementById('attack_histogram_middle');
+                let security_scores_histogram_middle_container = document.getElementById('attack_histogram_container_middle');
+                addHandlersForResize(security_scores_histogram_middle_canvas, security_scores_histogram_middle_container);
+
+                clearCanvas();
+
+                startSimulation(N, M, P);
+
+            }
+
+
+            function startSimulation(N, M, P) {
+
+                "use strict"
+
+                //let breached = createAttackGraphs(N, M, P);
+                createAttackGraphs(N, M, P);
+            }
+
+
+            function createAttackGraphs(N, M, P) {
+
+                "use strict"
+
+                let breached = new Array(N).fill(0);
+                let systems_list = [];
+
+                for (let i = 0; i < M; i++) {
+
+                    let system_scores = []
+                    let score = 0;
+
+                    for (let j = 0; j < N; j++) {
+
+                        //se l'attacco ha successo
+                        if (Math.random() < P) {
+                            // BREACH
+                            score += 1;
+                            breached[j] += 1;
+                        }
+                        //se l'attacco fallisce, sistema si protegge
+                        else {
+                            // SAFE
+                            score += 0;
+                        }
+
+                        system_scores.push(score);
+
+                    }
+                    systems_list.push(system_scores);
+                }
+                console.log("System list finale:", systems_list);
+
+                // SCORES DISTRIBUTION
+                let final_results = new Array(M).fill(0);
+                for (let i = 0; i < M; i++) { final_results[i] = systems_list[i][N - 1]; }
+                console.log("Final results:", final_results);
+                final_results.sort(function (a, b) { return a - b; });
+
+                let histogram_labels = [];
+                let current = Number.MIN_SAFE_INTEGER;
+                for (let i = 0; i < M; i++) {
+                    if (final_results[i] == current) continue;
+                    current = final_results[i];
+                    histogram_labels.push(current);
+                }
+
+                let histogram_count = [];
+                let conta;
+                for (let i = 0; i < histogram_labels.length; i++) {
+                    conta = 0;
+                    for (let j = 0; j < M; j++) {
+                        if (final_results[j] == histogram_labels[i]) {
+                            conta += 1;
+                        }
+                    }
+                    histogram_count.push(conta);
+                }
+
+                // SCORES DISTRIBUTION AT TIME T
+                let middle_results = new Array(M).fill(0);
+                let mid = Math.floor(N / 2);
+                for (let i = 0; i < M; i++) { middle_results[i] = systems_list[i][mid - 1]; }
+                console.log("Middle results:", middle_results);
+                middle_results.sort(function (a, b) { return a - b; });
+
+                let histogram_labels_middle = [];
+                let current_middle = Number.MIN_SAFE_INTEGER;
+                for (let i = 0; i < M; i++) {
+                    if (middle_results[i] == current_middle) continue;
+                    current_middle = middle_results[i];
+                    histogram_labels_middle.push(current_middle);
+                }
+                console.log("Histogram_labels:", histogram_labels_middle);
+                let histogram_count_middle = [];
+                let conta_middle;
+                for (let i = 0; i < histogram_labels_middle.length; i++) {
+                    conta_middle = 0;
+                    for (let j = 0; j < M; j++) {
+                        if (middle_results[j] == histogram_labels_middle[i]) {
+                            conta_middle += 1;
+                        }
+                    }
+                    histogram_count_middle.push(conta_middle);
+                }
+
+
+                // DRAW SECURITY SCORES
+                let ctx1 = document.getElementById('attack_graph').getContext('2d');
+                let ctx2 = document.getElementById('attack_histogram').getContext('2d');
+                let ctx3 = document.getElementById('attack_histogram_middle').getContext('2d');
+
+                let security_scores_chart_config = {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({ length: N }, (_, i) => `Attack ${i + 1}`),
+                        datasets:[
+                            
+                            ...systems_list.map((trajectory, i) => ({
+                                label: `Systems ${i + 1}`,
+                                data: trajectory,
+                                borderColor: `rgba(${Math.random() * 255},${Math.random() * 255},${Math.random() * 255},1)`,
+                                fill: false,
+                                order: 2,
+                                label: 'graph1',    
+                            })),
+                            {
+                                label: 'bar',
+                                type: 'bar',
+                                data: histogram_count,
+                                backgroundColor: 'rgba(255, 0, 0, 1)',
+                                order: 1,
+                                
+                                
+                            }
+                        ],
+                    options: {
+                        responsive: true,
+                    
+                        bar:{
+                            indexAxis: 'y', 
+                        },
+                    
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            
+                            title: {
+                                display: true,
+                                text: 'SECURITY SCORES CHART'
+                            }
+                        },
+                        scales: {
+                                x: {
+                                    beginAtZero: true,
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                },
+                        },
+                       
+                        
+                        }
+                    }
+                }
+
+
+                let security_scores_histogram_config = {
+                    type: 'bar',
+                    data: {
+                        labels: histogram_labels,
+                        datasets: [{
+                            data: histogram_count,
+                            backgroundColor: 'rgba(255, 0, 0, 1)',
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'SECURITY SCORES DISTRIBUTION HISTOGRAM'
+                            }
+                        },
+                        indexAxis: 'y',  // Inverti l'asse Y
+                        scales: {
+                            x: {
+                                display: false,
+                                beginAtZero: true,
+                            },
+                            y: {
+                                display: false,
+                                beginAtZero: true,
+                            },
+                        },
+                    },
+                };
+
+                let security_scores_histogram_config_middle = {
+                    type: 'bar',
+                    data: {
+                        labels: histogram_labels_middle,
+                        datasets: [{
+                            data: histogram_count_middle,
+                            backgroundColor: 'rgba(255, 0, 0, 1)',
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'SECURITY SCORES DISTRIBUTION HISTOGRAM AT TIME T'
+                            }
+                        },
+                        indexAxis: 'y',  // Inverti l'asse Y
+                        scales: {
+                            x: {
+                                display: false, //metti true se vuoi vedere asse x
+                                beginAtZero: true,
+                            },
+                            y: {
+                                display: false, //metti true se vuoi vedere asse y
+                                beginAtZero: true,
+                            },
+                        },
+                        grid:{
+                            display:false //metti true se vuoi vedere griglia
+                        }
+                    },
+                };
+
+                new Chart(ctx1, security_scores_chart_config);
+                new Chart(ctx2, security_scores_histogram_config);
+                new Chart(ctx3, security_scores_histogram_config_middle);
+
+
+                return breached;
+            }
+
+
+
+            function addHandlersForResize(element, container) {
+
+                let isResizing = false;
+                let resizeOffsetX, resizeOffsetY;
+
+                element.addEventListener("mousedown", (event) => {
+                    if (event.button === 2) {
+                        const rect = element.getBoundingClientRect();
+                        resizeOffsetX = event.clientX - rect.right;
+                        resizeOffsetY = event.clientY - rect.bottom;
+                        isResizing = true;
+                    }
+                });
+
+                element.addEventListener("mousemove", (event) => {
+                    if (isResizing) {
+                        element.style.width = event.clientX - element.getBoundingClientRect().left - resizeOffsetX + "px";
+                        element.style.height = event.clientY - element.getBoundingClientRect().top - resizeOffsetY + "px";
+                        container.style.width = event.clientX - element.getBoundingClientRect().left - resizeOffsetX + "px";
+                        container.style.height = event.clientY - element.getBoundingClientRect().top - resizeOffsetY + "px";
+                    }
+                });
+
+                element.addEventListener("mouseup", () => {
+                    isResizing = false;
+                });
+
+
+                element.addEventListener("resize", () => {
+                    element.style.width = container.clientWidth + "px";
+                    element.style.height = container.clientHeight + "px";
+                    container.style.width = container.clientWidth + "px";
+                    container.style.height = container.clientHeight + "px";
+                });
+            }
+
+
+            function clearCanvas() {
+                let chartStatus = Chart.getChart("myChart"); // <canvas> id
+                if (chartStatus != undefined) {
+                    chartStatus.destroy();
+                }
+
+                let security_scores_graph_canvas = Chart.getChart('attack_graph');
+                if (security_scores_graph_canvas != undefined) security_scores_graph_canvas.destroy();
+
+                let security_scores_histogram_canvas = Chart.getChart('attack_histogram');
+                if (security_scores_histogram_canvas != undefined) security_scores_histogram_canvas.destroy();
+
+                let security_scores_histogram_middle_canvas = Chart.getChart('attack_histogram_middle');
+                if (security_scores_histogram_middle_canvas != undefined) security_scores_histogram_middle_canvas.destroy();
+            }
+
+        </script>
+
+
+</body>
+
+
+</html>
