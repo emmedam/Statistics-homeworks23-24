@@ -22,7 +22,7 @@
             <input type="number" id="M" value="50" min="0" />
             <br /> <br />
             <label>Probability</label>
-            <input type="number" id="P" value="0.5" step="0.01" min="0" max="100" />
+            <input type="number" id="P" value="0.8" step="0.01" min="0" max="100" />
             <br /> <br />
             <label>Security Score</label>
             <input type="number" id="S" value="10" step="0.01" min="0" max="100" />
@@ -109,7 +109,6 @@
 
         }
 
-        let y_diomio, x_diomio;
 
         class Histogram {
             static verticalHistoFromIntervals(ctx, intervals, y_min, y_range, viewRect, strokeStyle, lineWidth, fillStyle) {
@@ -127,28 +126,24 @@
                     let y_rect_bottom = Prof2dUtilities.transformY(interval.lower, y_min, y_range, viewRect.y, viewRect.height);
                     let height_rect = y_rect_bottom - y_rect_top;
                     let rectInterval = new Rectangle(x_rect, y_rect_top, width_rect, height_rect);
-                    y_diomio = rectInterval.y;
-                    x_diomio = rectInterval.x;
-                    //ctx.rect(rectInterval.x, rectInterval.y, rectInterval.width, rectInterval.height);
-                    //ctx.fillText("eccome", rectInterval.x, rectInterval.y, 100)
-                    
+
+                    ctx.rect(rectInterval.x, rectInterval.y, rectInterval.width, rectInterval.height);
+
                     const gradient = ctx.createLinearGradient(rectInterval.x, rectInterval.y, rectInterval.x, rectInterval.y + rectInterval.height);
-                   
-                    gradient.addColorStop(0, 'black');
-                    gradient.addColorStop(0.25, fillStyle);
-                    gradient.addColorStop(0.5, 'white');
-                    gradient.addColorStop(0.75, fillStyle);
-                    gradient.addColorStop(1, 'black');
+                    gradient.addColorStop(0, 'red');
+                    // gradient.addColorStop(0.25, fillStyle);
+                    // gradient.addColorStop(0.5, 'white');
+                    // gradient.addColorStop(0.75, fillStyle);
+                    // gradient.addColorStop(1, 'black');
                     ctx.fillStyle = gradient;
                     ctx.fillRect(rectInterval.x, rectInterval.y, rectInterval.width, rectInterval.height);
-                    //ctx.fillText("eccome", rectInterval.x, rectInterval.y, 100)
+
                 }
 
             }
 
         }
 
-        
         function check() {
             let currentAttack = 1;
             const numSystems = parseInt(document.getElementById('M').value);
@@ -262,44 +257,16 @@
                     const label = i.toString();
                     ctx.fillStyle = "black";
                     ctx.fillText(label, x - labelPadding, xAxisLabelY);
+
                 }
 
-                // ctx.fillStyle = "black";
-                // ctx.fillText("0", yAxisLabelX,  rect.top() + yrangeHalf * (rect.height / yrange));
 
-                
-                for (let i = 0; i <= 1000; i += 10) {
+                for (let i = -yrangeHalf; i <= yrangeHalf; i += yStep) {
                     const y = rect.top() + (i + yrangeHalf) * (rect.height / yrange);
-                    //console.log("y:" , y);
                     const label = -i.toString();
                     ctx.fillStyle = "black";
                     ctx.fillText(label, yAxisLabelX, y);
-
-                    //ctx.beginPath();
-                    
                 }
-                
-                // for (let i = -yrangeHalf; i <= yrangeHalf; i += yStep) {
-                //     const y = rect.top() + (i + yrangeHalf) * (rect.height / yrange);
-                //     console.log("y:" , y);
-                //     const label = -i.toString();
-                //     ctx.fillStyle = "black";
-                //     ctx.fillText(label, yAxisLabelX, y);
-
-                //     //ctx.beginPath();
-                    
-                // }
-                // ctx.beginPath();
-                // ctx.moveTo(y, 0);
-                // ctx.lineTo(10, 10);
-                // ctx.strokeStyle = 'red';
-                // ctx.lineWidth = 3;
-
-                // ctx.beginPath(); 
-                // // Staring point 
-                // ctx.moveTo(10,201);
-                // // End point 
-                // ctx.lineTo(1010,201);
                 
 
 
@@ -410,10 +377,8 @@
                 let histoHeight = viewRect.height;
                 let y_offset = (viewRect.height - histoHeight) * 0.5;
                 const histoRect1 = new Rectangle(Prof2dUtilities.transformX(numAttack, 0, numAttacks, viewRect.x, viewRect.width), viewRect.y + y_offset, 150, histoHeight);
-                
-                
+
                 Histogram.verticalHistoFromIntervals(ctx, intervals, y_min, y_range, histoRect1, "yellow", 3, "yellow", frequenzeRaggiuntoP, values);
-                ctx.fillText("SFEF", y_diomio, x_diomio,50);
             }
 
         }
