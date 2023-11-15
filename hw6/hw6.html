@@ -91,8 +91,6 @@
                 ctx.setLineDash(lineDash);
                 ctx.stroke();
                 ctx.restore()
-                //console.log("width:", this.width);
-                drawLine(this.width, this.height/2);
             }
 
         }
@@ -150,17 +148,7 @@
 
         }
 
-        function drawLine(x, y){
-            ctx.beginPath();
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 3;
-            ctx.beginPath(); 
-            // Staring point 
-            ctx.moveTo(10,y);
-            // End point 
-            ctx.lineTo(x+10,y);
-            ctx.stroke();
-        }
+        
         function check() {
             let currentAttack = 1;
             const numSystems = parseInt(document.getElementById('M').value);
